@@ -1,0 +1,89 @@
+syntax = "proto3";
+
+package mymessage;
+option go_package = "./pb";
+
+enum MessageKind {
+    CLIENT_NOT_FOUND = 0; // server -> master
+
+    LOGIN_GET = 1; // server->
+    LOGIN_RESP = 2; // ->server
+
+    CLIENTS_GET = 3; // master->
+    CLIENTS_RESP = 4; // ->master
+
+    SHELL_OPEN = 5; // master->
+    SHELL_OPEN_RES = 6; // client->master
+
+    SHELL_WRITE = 7; // master->
+    SHELL_CLOSE = 8; // master->
+    SHELL_RESP = 9; // client->master
+
+    DOWN_START = 10; // master->
+    UP_START = 11; // master->
+    FILE_CHUNK = 12; // master,client->
+}
+
+message EmptyBody {}
+
+enum Role {
+    CLIENT = 0;
+    MASTER = 1;
+}
+
+enum Result {
+    OK = 0;
+    ERROR = 1;
+}
+
+message SysInfo {
+    string uname = 1;
+}
+
+message Login {
+    Role role = 1;
+    optional SysInfo info = 2; // for clients
+}
+
+message ClientList {
+    message Entry {
+        uint64 id = 1;
+        string ip = 2;
+        string uname = 3;
+        int64 onlineDur = 4;
+    }
+
+    repeated Entry entries = 1;
+}
+
+// file transfer header
+message FTHeader {
+    string path = 1; // either dst or src
+    uint64 id = 2; // unique allocated id
+}
+
+message FileChunk {
+    uint64 id = 1;
+    bool last = 2;
+    bytes data = 3;
+}
+
+message Message {
+    MessageKind kind = 1;
+    optional uint64 clientId = 2;
+    oneof body {
+        EmptyBody empty = 3;
+        Login login = 4;
+
+        // server->master
+        ClientList clients = 5;
+
+        // e.g. shell stdin/stdout
+        string textContent = 6;
+
+        Result res = 7;
+
+        FTHeader ftheader = 8;
+        FileChunk fileChunk = 9;
+    }
+}
