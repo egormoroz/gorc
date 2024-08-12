@@ -8,26 +8,26 @@ import (
 )
 
 func StartChunkSender(ctx context.Context, send chan<- *pb.Message) chan<- common.Chunk {
-    c := make(chan common.Chunk, 16)
+	c := make(chan common.Chunk, 16)
 
-    go func() {
-        for {
-            select {
-            case <-ctx.Done(): return
-            case chunk := <-c:
-                ch := &pb.FileChunk {
-                    Data: chunk.Data,
-                    Last: chunk.Last,
-                }
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case chunk := <-c:
+				ch := &pb.FileChunk{
+					Data: chunk.Data,
+					Last: chunk.Last,
+				}
 
-                send <- &pb.Message{
-                    Kind: pb.MessageKind_FILE_CHUNK,
-                    Body: &pb.Message_FileChunk{ FileChunk: ch },
-                }
-            }
-        }
-    }()
+				send <- &pb.Message{
+					Kind: pb.MessageKind_FILE_CHUNK,
+					Body: &pb.Message_FileChunk{FileChunk: ch},
+				}
+			}
+		}
+	}()
 
-    return c
+	return c
 }
-

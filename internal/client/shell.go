@@ -16,16 +16,24 @@ func NewShell() (*Shell, error) {
 	cmd := exec.Command("powershell.exe")
 
 	stdin, err := cmd.StdinPipe()
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	stdout, err := cmd.StdoutPipe()
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	stderr, err := cmd.StderrPipe()
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	err = cmd.Start()
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	shell := &Shell{
 		cmd:    cmd,
@@ -47,10 +55,11 @@ func NewShell() (*Shell, error) {
 		for scanner.Scan() {
 			select {
 			case shell.stdout <- scanner.Text():
-			case <-shell.done: return
+			case <-shell.done:
+				return
 			}
 		}
-        close(shell.stdout)
+		close(shell.stdout)
 	}()
 
 	// Handle stderr
@@ -59,7 +68,8 @@ func NewShell() (*Shell, error) {
 		for scanner.Scan() {
 			select {
 			case shell.stdout <- scanner.Text():
-			case <-shell.done: return
+			case <-shell.done:
+				return
 			}
 		}
 	}()

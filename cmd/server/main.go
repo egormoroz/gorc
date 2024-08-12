@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-    if err := server.Run("localhost:1337"); err != nil {
-        fmt.Println("Something went wrong:", err)
-    }
+	if err := server.Run("localhost:1337"); err != nil {
+		fmt.Println("Something went wrong:", err)
+	}
 }

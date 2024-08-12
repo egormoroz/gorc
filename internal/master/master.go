@@ -12,80 +12,82 @@ import (
 )
 
 type Master struct {
-    conn net.Conn
-    send chan *pb.Message
+	conn net.Conn
+	send chan *pb.Message
 
-    ctx context.Context
+	ctx context.Context
 
-    counter uint64
-    downloader *common.FileDownloader
-    uploader *common.FileUploader
+	counter    uint64
+	downloader *common.FileDownloader
+	uploader   *common.FileUploader
 
-    fcs *FChunkSender
+	fcs *FChunkSender
 
-    // This must be immutable during runtime
-    handlers map[pb.MessageKind]MessageHandler
+	// This must be immutable during runtime
+	handlers map[pb.MessageKind]MessageHandler
 
-    cliResp chan *pb.Message
+	cliResp chan *pb.Message
 }
 
 func Run(addr string) error {
-    conn, err := net.Dial("tcp", addr)
-    if err != nil {
-        fmt.Fprintln(os.Stderr, "Failed to dial:", err)
-        return err
-    }
+	conn, err := net.Dial("tcp", addr)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "Failed to dial:", err)
+		return err
+	}
 
-    ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.Background())
 
-    send := make(chan *pb.Message, 4)
+	send := make(chan *pb.Message, 4)
 
-    m := Master { 
-        conn: conn, 
-        send: send,
-        handlers: make(map[pb.MessageKind]MessageHandler),
-        cliResp: make(chan *pb.Message), // blocking
+	m := Master{
+		conn:     conn,
+		send:     send,
+		handlers: make(map[pb.MessageKind]MessageHandler),
+		cliResp:  make(chan *pb.Message), // blocking
 
-        downloader: common.NewFileDownloader(16, time.Second * 5),
-        uploader: common.NewFileUploader(16),
+		downloader: common.NewFileDownloader(16, time.Second*5),
+		uploader:   common.NewFileUploader(16),
 
-        ctx: ctx,
+		ctx: ctx,
 
-        fcs: NewFChunkSender(ctx, send),
-    }
+		fcs: NewFChunkSender(ctx, send),
+	}
 
-    m.registerHandlers()
+	m.registerHandlers()
 
-    stopped := make(chan struct{}, 2)
-    go func() {
-        for msg := range m.send {
-            err := common.SendMessage(m.conn, msg)
-            if err != nil { break }
-        }
+	stopped := make(chan struct{}, 2)
+	go func() {
+		for msg := range m.send {
+			err := common.SendMessage(m.conn, msg)
+			if err != nil {
+				break
+			}
+		}
 
-        stopped <- struct{}{}
-    }()
+		stopped <- struct{}{}
+	}()
 
-    go func() { 
-        for {
-            msg, err := common.RecvMessage(m.conn)
-            if err != nil { 
-                break
-            }
-            m.handleMessage(msg)
-        }
+	go func() {
+		for {
+			msg, err := common.RecvMessage(m.conn)
+			if err != nil {
+				break
+			}
+			m.handleMessage(msg)
+		}
 
-        stopped <- struct{}{}
-    }()
+		stopped <- struct{}{}
+	}()
 
-    m.cli()
+	m.cli()
 
-    cancel()
+	cancel()
 
-    m.conn.Close()
-    close(m.send)
-    <-stopped
-    <-stopped
+	m.conn.Close()
+	close(m.send)
+	<-stopped
+	<-stopped
 
-    return nil
+	return nil
 }

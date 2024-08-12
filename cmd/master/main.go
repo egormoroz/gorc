@@ -1,9 +1,9 @@
 package main
 
 import (
-    "github.com/egormoroz/gorc/internal/master"
+	"github.com/egormoroz/gorc/internal/master"
 )
 
 func main() {
-    master.Run("localhost:1337")
+	master.Run("localhost:1337")
 }
